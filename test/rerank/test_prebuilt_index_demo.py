@@ -37,7 +37,7 @@ class PrebuiltIndexDemoTest(unittest.TestCase):
         self.evaluate = self.enterContext(
             patch.object(demo.EvalFunction, "from_results", return_value="0.5")
         )
-        self.enterContext(patch.object(demo, "ResponseAnalyzer"))
+        self.analyzer = self.enterContext(patch.object(demo, "ResponseAnalyzer"))
         self.model = self.enterContext(patch.object(demo, "VicunaReranker"))
         self.model.return_value.rerank_batch.side_effect = lambda requests, **kw: [
             Result(query=request.query, candidates=request.candidates)
@@ -77,6 +77,7 @@ class PrebuiltIndexDemoTest(unittest.TestCase):
         self.assertEqual(kwargs["top_k_retrieve"], 100)
         # Three retrieval metrics and one rerank metric per method.
         self.assertEqual(self.evaluate.call_count, 8)
+        self.assertEqual(self.analyzer.from_inline_results.call_count, 2)
         for method in demo.DEFAULT_RETRIEVAL_METHODS:
             folder = self.root / "output" / method / "rank_vicuna_7b_v1"
             for name in ("rerank.jsonl", "rerank.txt", "invocations.json"):
@@ -105,6 +106,8 @@ class PrebuiltIndexDemoTest(unittest.TestCase):
             "--retrieval-methods", "bm25", "--no-populate-invocations-history"
         )
         self.assertFalse(history.exists())
+        # Response analysis needs the invocations history, so it is skipped.
+        self.assertEqual(self.analyzer.from_inline_results.call_count, 1)
 
     def test_reranker_closed_when_retrieval_fails(self):
         self.retrieve.side_effect = RuntimeError("boom")

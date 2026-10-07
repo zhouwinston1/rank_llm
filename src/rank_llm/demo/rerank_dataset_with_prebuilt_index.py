@@ -150,9 +150,11 @@ def main(argv: Sequence[str] | None = None) -> None:
                 populate_invocations_history=args.populate_invocations_history,
             )
 
-            # Analyze response.
-            analyzer = ResponseAnalyzer.from_inline_results(rerank_results)
-            print(analyzer.count_errors(verbose=True))
+            # Analyze response. This reads the invocations history, so it needs
+            # it populated.
+            if args.populate_invocations_history:
+                analyzer = ResponseAnalyzer.from_inline_results(rerank_results)
+                print(analyzer.count_errors(verbose=True))
 
             # Evaluate rerank results.
             print(EvalFunction.from_results(rerank_results, topics))
