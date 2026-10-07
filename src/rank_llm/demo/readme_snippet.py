@@ -183,9 +183,11 @@ def main(argv: Sequence[str] | None = None) -> None:
     # -----------------------
 
     # -- Analyze invocations ---
-    analyzer = ResponseAnalyzer.from_inline_results(rerank_results)
-    error_counts = analyzer.count_errors(verbose=True)
-    print(error_counts)
+    # Response analysis reads the invocations history, so it needs it populated.
+    if args.populate_invocations_history:
+        analyzer = ResponseAnalyzer.from_inline_results(rerank_results)
+        error_counts = analyzer.count_errors(verbose=True)
+        print(error_counts)
     # -----------------------
 
     # ---- Save results ----

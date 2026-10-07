@@ -37,7 +37,7 @@ class ReadmeSnippetDemoTest(unittest.TestCase):
         self.enterContext(
             patch.object(demo.EvalFunction, "from_results", return_value="0.5")
         )
-        self.enterContext(patch.object(demo, "ResponseAnalyzer"))
+        self.analyzer = self.enterContext(patch.object(demo, "ResponseAnalyzer"))
         self.zephyr = self.enterContext(patch.object(demo, "ZephyrReranker"))
         self.vicuna = self.enterContext(patch.object(demo, "VicunaReranker"))
         for model in (self.zephyr, self.vicuna):
@@ -68,6 +68,7 @@ class ReadmeSnippetDemoTest(unittest.TestCase):
         self.assertEqual(kwargs["rank_end"], 100)
         self.assertEqual(kwargs["top_k_retrieve"], 100)
         self.assertTrue(kwargs["populate_invocations_history"])
+        self.analyzer.from_inline_results.assert_called_once()
         folder = self.root / "output" / "rank_zephyr_7b_v1_full"
         for name in ("rerank.jsonl", "rerank.txt", "invocations.json"):
             self.assertTrue((folder / name).exists())
@@ -111,8 +112,11 @@ class ReadmeSnippetDemoTest(unittest.TestCase):
         self.run_demo()
         history = self.root / "output" / "rank_zephyr_7b_v1_full" / "invocations.json"
         self.assertTrue(history.exists())
+        self.analyzer.from_inline_results.reset_mock()
         self.run_demo("--no-populate-invocations-history")
         self.assertFalse(history.exists())
+        # Response analysis needs the invocations history, so it is skipped.
+        self.analyzer.from_inline_results.assert_not_called()
 
     def test_nonpositive_numeric_arguments_fail_before_loading(self):
         for option in (
